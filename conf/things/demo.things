@@ -1,0 +1,66 @@
+Bridge mqtt:broker:myUnsecureBroker [ host="localhost", secure=false ]
+{
+    Thing topic settings {
+    Channels:
+         
+         Type switch : ManualMode "Manual Mode" [ stateTopic="settings/manualmode/state", commandTopic="settings/manualmode/command/set"]
+         Type switch : PresenceatHome "Presence at Home" [ stateTopic="settings/presencehome/state", commandTopic="settings/presencehome/set"]
+
+    }
+
+    Thing topic phone {
+    Channels:
+         
+         Type switch : PresenceMobileUser "Presence Mobile User" [ stateTopic="phone/presence/state", commandTopic="phone/presence/command/set"]
+         Type number : DistanceFromHome [stateTopic="phone/distance/state" ]
+         Type switch : allertMobile "Allert Mobile" [ stateTopic="phone/alert/state", commandTopic="phone/alert/command/set"]
+
+         Type number : TimeOutside [stateTopic="phone/timeoutside/state" ]
+    }
+
+
+    Thing topic kitchen {
+    Channels:
+
+        Type switch : motionK "Motion Sensor Kitchen" [ stateTopic="kitchen/sensor/motion/state"]
+
+        Type number : thermostatK [stateTopic="kitchen/sensor/thermostat/state", commandTopic="kitchen/command/thermostat/set"]
+        Type number : MinTemperatureK [stateTopic="kitchen/preference/minTemperature/state", commandTopic="kitchen/command/minTemperature/set" ]
+        Type number : temperatureK [stateTopic="kitchen/sensor/temperature/state"]
+        Type number : MinLightK [stateTopic="kitchen/preference/minLight/state", commandTopic="kitchen/command/minLight/set" ]
+        Type number : lightK [stateTopic="kitchen/sensor/light/state"]
+
+        Type switch : lampK "Lamp Kitchen" [ stateTopic="kitchen/sensor/lamp/state", commandTopic="kitchen/command/lamp/set" ]
+        Type switch : shutterK "Windows Shutter Kitchen" [stateTopic="kitchen/sensor/shutter/state", commandTopic="kitchen/command/shutter/set" ]
+        Type switch : radiatorK "Radiator Kitchen" [ stateTopic="kitchen/sensor/radiator/state", commandTopic="kitchen/command/radiator/set" ]
+ 
+
+    } 
+
+    Thing topic bathroom {
+    Channels:
+
+        Type switch : motionBT "Motion Sensor Bathroom" [ stateTopic="bathroom/sensor/motion/state"]
+
+        Type number : thermostatBT [stateTopic="bathroom/sensor/thermostat/state", commandTopic="bathroom/command/thermostat/set"]
+        Type number : MinTemperatureBT [stateTopic="bathroom/preference/minTemperature/state", commandTopic="bathroom/command/minTemperature/set" ]
+        Type number : temperatureBT [stateTopic="bathroom/sensor/temperature/state"]
+        Type number : MinLightBT [stateTopic="bathroom/preference/minLight/state", commandTopic="bathroom/command/minLight/set" ]
+        Type number : lightBT [stateTopic="bathroom/sensor/light/state"]
+
+        Type switch : lampBT "Lamp Bathroom" [ stateTopic="bathroom/sensor/lamp/state", commandTopic="bathroom/command/lamp/set" ]
+        Type switch : shutterBT "Windows Shutter Bathroom" [stateTopic="bathroom/sensor/shutter/state", commandTopic="bathroom/command/shutter/set" ]
+        Type switch : radiatorBT "Radiator Bathroom" [ stateTopic="bathroom/sensor/radiator/state", commandTopic="bathroom/command/radiator/set" ]      
+ 
+    }     
+ 	
+
+
+    Thing topic garden {
+    Channels:
+        Type switch : motionG "Motion Sensor Garden" [ stateTopic="garden/sensor/motion/state"]
+        Type number : lightG [stateTopic="garden/sensor/light/state" ]
+        Type number : temperatureG [stateTopic="garden/sensor/temperature/state" ]
+    }
+    
+}

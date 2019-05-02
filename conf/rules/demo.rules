@@ -1,0 +1,662 @@
+var String commanPath = "python /Users/marcodinatale/Downloads/SmartHome/conf/scripts"
+
+
+
+rule "Set Default Values"
+when
+        System started 
+then
+
+/* Voglio settare tutte le variabili solo al primo avvio del sistema, quindi faccio un controllo su una variabile
+   e se questa è uguale ad uno stato indefinito allora il sistema deve essere */
+if((TemperatureK.state == UNDEF || TemperatureK.state == NULL)&&
+   (TemperatureBT.state == UNDEF || TemperatureBT.state == NULL)){
+
+    ManualMode.postUpdate(OFF)
+    PresenceatHome.postUpdate(OFF)
+
+    PresenceMobileUser.postUpdate(OFF)
+    DistanceFromHome.postUpdate(0) 
+    allertMobile.postUpdate(OFF)
+    TimeOutside.postUpdate(0)
+
+    LampK.postUpdate(OFF)
+    ShutterK.postUpdate(OFF)
+    RadiatorK.postUpdate(OFF)
+    TemperatureK.postUpdate(0)
+    LightK.postUpdate(0)
+    MotionK.postUpdate(OFF)
+
+    LampBT.postUpdate(OFF)
+    ShutterBT.postUpdate(OFF)
+    RadiatorBT.postUpdate(OFF)
+    TemperatureBT.postUpdate(0)
+    LightBT.postUpdate(0)
+    MotionBT.postUpdate(OFF)
+
+
+    TemperatureG.postUpdate(0)
+    LightG.postUpdate(0)
+    MotionG.postUpdate(OFF)
+    Thread::Sleep(250)
+}
+
+end
+
+
+rule "Presence at Home"
+when
+  Item MotionK changed or
+  Item MotionBT changed or
+  Item MotionG changed or
+  Item PresenceatHome changed
+then
+    
+    // Se in nessuna stanza c'è movimento, comunica alla casa che non c'è nessuno in casa
+    if (MotionK.state == OFF && MotionBT.state == OFF && MotionG.state == OFF ) {
+      if (PresenceatHome.state == ON) {
+        PresenceatHome.sendCommand(OFF)
+        executeCommandLine(commanPath+"/homeEmpty.py Home")
+      }
+    } 
+    // Se in almeno una stanza c'è movimento, comunica alla casa che c'è qualcuno in casa
+    if (MotionK.state == ON || MotionBT.state == ON || MotionG.state == ON) {
+        if (PresenceatHome.state == OFF) {
+        PresenceatHome.sendCommand(ON)
+        executeCommandLine(commanPath+"/fullHome.py Home")
+      }
+    } 
+end
+
+
+
+rule "Phone Outside"
+when 
+  Member of phone changed or
+  Item PresenceatHome changed 
+then
+    // Se non c'è nessuno a casa
+    if (PresenceatHome.state == OFF) {
+      // Se il cellulare si allontana da casa (quindi non l'ho scordato a casa)
+      if (DistanceFromHome.state > 0) {
+        // Segnala che il telefono dell'utente non è più in casa
+        if (PresenceMobileUser.state == ON) {
+          PresenceMobileUser.sendCommand(OFF)
+        }
+      // Altrimenti se il telefono non si è allontanato da casa
+      } else {
+          // Segnala che il telefono dell'utente è in casa
+          if (PresenceMobileUser.state == OFF) {
+            PresenceMobileUser.sendCommand(ON)
+          }
+      }
+    // Altrimenti se c'è qualcuno in casa
+    } else {
+        // Ed il cellulare si trova a casa
+        if (DistanceFromHome.state == 0){
+          // Segnala che il telefono dell'utente è in casa
+          if (PresenceMobileUser.state == OFF) {
+            PresenceMobileUser.sendCommand(ON)
+          }
+        }
+      }
+end
+
+
+
+rule "User Outside"
+when
+  Time cron "0 0/1 * * * ?" or  // every 3 minutes
+  Member of phone changed or 
+  Item PresenceatHome changed or
+  Item ManualMode changed
+then
+  //Se l'utente non vuole intervenire manualmente  
+  if (ManualMode.state == OFF) {
+// **********************************************************************************************************
+// Caso base in cui l'utente ha il cellulare con se ed esce di casa
+// **********************************************************************************************************
+    // Se non c'è nessuno a casa  ed il cellulare dell'utente sta uscendo da casa
+    if (PresenceatHome.state == OFF && PresenceMobileUser.state == OFF) {
+      // appena il cellulare dell'utente si distanzia da casa ed è fuori da almeno 15 minuti ma massimo 30
+      if (DistanceFromHome.state > 0 && TimeOutside.state >= 15 && TimeOutside.state < 30) {
+          // Segnala alla casa che l'utente è fuori casa
+          if (allertMobile.state == ON) {
+            allertMobile.sendCommand(OFF)
+          }
+      }
+        // se invece sta tornando a casa (è fuori da almeno di 30 minuti) ed è nel raggio di 10km da essa
+        if (DistanceFromHome.state <= 10 && DistanceFromHome.state > 0 && TimeOutside.state >= 30){
+            // Segnala alla casa che l'utente sta tornando (quindi ripartirà la rule di gestione della temperatura)          
+            if (allertMobile.state == OFF) {
+            allertMobile.sendCommand(ON)
+            }
+        }
+  // **********************************************************************************************************
+  // Caso in cui l'utente ha il cellulare con se fuori casa ma c'è qualcun altro a casa (ospite)
+  // **********************************************************************************************************
+    }else{
+      // se a casa c'è qualcuno ma il cellulare registrato dall'utente al sistema è fuori casa
+      if (PresenceatHome.state == ON && PresenceMobileUser.state == OFF)
+        // Segnala alla casa che qualcuno è in casa 
+        if (allertMobile.state == OFF) {
+            allertMobile.sendCommand(ON)
+          }
+
+    }
+  // **********************************************************************************************************
+  // Caso banale in cui l'utente ha il cellulare a casa con se
+  // **********************************************************************************************************
+      // Se il cellulare dell'utente è a casa e c'è qualcuno in casa
+      if (PresenceMobileUser.state == ON && PresenceatHome.state == ON) {
+          // Segnala alla casa che l'utente è in casa        
+          if (allertMobile.state == OFF) {
+            allertMobile.sendCommand(ON)
+          }
+  // **********************************************************************************************************
+  // Controllo che avviene quando l'utente dimentica il cellulare a casa (non posso usare DistanceFromHome)
+  // **********************************************************************************************************
+      }else{
+          // Altrimenti il cellulare dell'utente è a casa e non c'è qualcuno in casa
+          if (PresenceMobileUser.state == ON && PresenceatHome.state == OFF) {
+              // Segnala alla casa che l'utente non è in casa        
+             
+              var String stateKitchen = executeCommandLine(commanPath+"/estimatedReturnTime.py Kitchen "+TemperatureG.state+" "+TemperatureK.state+" "+ThermostatK.state,10000)
+              var String stateBathroom = executeCommandLine(commanPath+"/estimatedReturnTime.py Bathroom "+TemperatureG.state+" "+TemperatureBT.state+" "+ThermostatBT.state,10000)
+              
+              if(stateKitchen == "ON" || stateBathroom == "ON"){
+                allertMobile.sendCommand(ON) 
+              }else{
+                allertMobile.sendCommand(OFF) 
+              }
+              
+          }
+      }
+  }
+          
+end
+
+
+
+rule "User near home"
+when
+  Member of phone changed or
+  Item TemperatureK changed or
+  Item RadiatorK changed or
+  Item ShutterK changed or
+  Item TemperatureBT changed or
+  Item RadiatorBT changed or
+  Item ShutterBT changed or
+  Item MinTemperatureK changed or
+  Item MinTemperatureBT changed or
+  Item ManualMode changed
+then
+  //Se l'utente non vuole intervenire manualmente
+  // appena l'utente si distanzia da casa di almeno 3km ed è fuori da almeno 15 minuti ma massimo 30
+  if (ManualMode.state == OFF && allertMobile.state == OFF) {
+
+      // In qualsiasi caso chiudi le finestre      
+      if(ShutterK.state == ON){
+          ShutterK.sendCommand(OFF)
+      }
+      // In qualsiasi caso chiudi le finestre      
+      if(ShutterBT.state == ON){
+          ShutterBT.sendCommand(OFF)
+      }    
+        
+      // Fintanto che la temperatura all'interno della casa rimane sul valore minimo di gradi che ha deciso l'utente     
+      if (TemperatureK.state >= MinTemperatureK.state) {
+          // Spegni i termosifoni per risparmiare energia ( le finestre sono chiuse per isolare la casa   
+          if(RadiatorK.state == ON){
+            RadiatorK.sendCommand(OFF)
+          }
+      // Ma se la temperatura all'interno della casa scende sotto ai 18 gradi riaccendi i termosifoni anche se l'utente non è in casa
+      } else {
+          if(RadiatorK.state == OFF){
+            RadiatorK.sendCommand(ON)
+          }
+      }
+      // Fintanto che la temperatura all'interno della casa rimane sul valore minimo di gradi che ha deciso l'utente     
+      if (TemperatureBT.state >= MinTemperatureBT.state) {
+          // Spegni i termosifoni per risparmiare energia e chiudi la finestra per isolare la casa      
+          if(RadiatorBT.state == ON){
+            RadiatorBT.sendCommand(OFF)
+          }
+      // Ma se la temperatura all'interno della casa scende sotto ai 18 gradi riaccendi i termosifoni anche se l'utente non è in casa
+      } else {
+            if(RadiatorBT.state == OFF){
+              RadiatorBT.sendCommand(ON)
+            }
+      }
+
+  }
+end
+
+
+
+/**/
+
+//############################################################################################################
+// Gestione della luminosità nella cucina
+//############################################################################################################
+
+
+rule "Change Light Kitchen"
+
+  when
+    // Se un membro del gruppo "kitchen" cambia, fai questi controlli.    
+    Member of kitchen changed or
+    Item ManualMode changed
+  then 
+    // Questa regola entra in funzione quando l'utente non desidera intervenire: è una regola automatica. Nel momento in cui l'utente desidera 
+    // intervenire gli è sufficiente mettere lo switch di manual mode su true. In questo modo può gestire i device smart come desidera. 
+    if (ManualMode.state == OFF) {
+      // Se c'è qualcuno nella stanza (cucina)   
+      if(MotionK.state == ON){
+        // Se la quantità di luce presente nella stanza è inferiore del 50 per cento
+        if(LightK.state < MinLightK.state ){
+          // E se la lampadina della cucina è spenta, accendila 
+          if(LampK.state == OFF){
+            LampK.sendCommand(ON)
+          }
+        // Altrimenti, se la quantità di luce è superiore al 50 per cento    
+        } else {
+          // E se la quantità di luce presente nella stanza è superiore o uguale anche al 90 per cento          
+          if (LightK.state >= MinLightK.state) {
+            // E se le luci sono accese, spegnile            
+            if (LampK.state == ON) {
+              LampK.sendCommand(OFF)
+            }
+          } 
+        } 
+      // Altrimenti, se non c'è nessuno dentro la stanza, e se le luci sono accese, spegnile
+      } else {            
+          if (LampK.state == ON) {
+            LampK.sendCommand(OFF)
+          }
+        }
+    }
+end
+
+
+//############################################################################################################
+// Gestione della luminosità nel bagno
+//############################################################################################################
+
+
+rule "Change Light Bathroom"
+
+  when
+    // Se un membro del gruppo "kitchen" cambia, fai questi controlli.    
+    Member of bathroom changed or
+    Item ManualMode changed
+  then 
+    // Questa regola entra in funzione quando l'utente non desidera intervenire: è una regola automatica. Nel momento in cui l'utente desidera 
+    // intervenire gli è sufficiente mettere lo switch di manual mode su true. In questo modo può gestire i device smart come desidera. 
+    if (ManualMode.state == OFF) {
+      // Se c'è qualcuno nella stanza (cucina)   
+      if(MotionBT.state == ON){
+        // Se la quantità di luce presente nella stanza è inferiore del 50 per cento
+        if(LightBT.state < MinLightBT.state ){
+          // E se la lampadina della cucina è spenta, accendila 
+          if(LampBT.state == OFF){
+            LampBT.sendCommand(ON)
+          }
+        // Altrimenti, se la quantità di luce è superiore al 50 per cento    
+        } else {
+          // E se la quantità di luce presente nella stanza è superiore o uguale anche al 90 per cento          
+          if (LightBT.state >= MinLightBT.state) {
+            // E se le luci sono accese, spegnile            
+            if (LampBT.state == ON) {
+              LampBT.sendCommand(OFF)
+            }
+          } 
+        } 
+      // Altrimenti, se non c'è nessuno dentro la stanza, e se le luci sono accese, spegnile
+      } else {            
+          if (LampBT.state == ON) {
+            LampBT.sendCommand(OFF)
+          }
+        }
+    }
+end
+
+
+//############################################################################################################
+// Gestione del riscaldamento per la cucina
+//############################################################################################################
+
+
+
+rule " Management Kitchen Temperature"
+
+// Se un membro del gruppo "kitchen" o la temperatura all'esterno (Temperature Garden) cambia,
+when
+      Member of kitchen changed or
+      Item TemperatureG changed or
+      Item ThermostatK changed or
+      // oppure se l'utente sta tornando a casa o è in casa, fai questi controlli.
+      Item allertMobile changed or
+      Item PresenceMobileUser changed to ON or
+      Item PresenceatHome changed to ON or
+      Item ManualMode changed
+then   
+// Questa regola entra in funzione quando l'utente non desidera intervenire: è una regola automatica. Nel momento in cui l'utente desidera 
+// intervenire gli è sufficiente mettere lo switch di manual mode su true. In questo modo può gestire i device smart come desidera.
+
+      // L'allert Mobile serve per allertare la casa che l'utente è in casa o che è molto vicino a casa e sta per ritornare,
+      // quindi nel secondo caso, lo usiamo per far ripartire il riscaldamento così da far trovare all'utente la temperatura ideale appena ritorna
+      if (ManualMode.state == OFF && allertMobile.state == ON ) {
+        // Se la temperatura che l'utente desidera avere in cucina (che viene indicata tramite il termostato) è uguale a quella percepita realmente
+        // nella stanza dal sensore di temperatura     
+        if(TemperatureK.state == ThermostatK.state) {
+          // Controllo se la finestra è aperta per chiuderla in modo tale da non disperdere calore o per non farlo entrare         
+          if (ShutterK.state == ON) {
+            ShutterK.sendCommand(OFF)
+          }
+          // Controllo se i temosifoni sono accesi e li spengo perchè non ce ne è più bisogno, risparmiando così energia
+          if (RadiatorK.state == ON) {
+            RadiatorK.sendCommand(OFF)
+          }
+        }
+        // Controllo se la temperatura all'interno della stanza (cucina) è minore rispetto a quella chiesta dall utente tramite il termostato della cucina  
+        if(TemperatureK.state < ThermostatK.state) {
+            // Controllo se la temperatura esterna (giardino) è maggiore o uguale rispetto a quella chiesta dall utente tramite il termostato della cucina   
+           if(TemperatureG.state >= ThermostatK.state){
+              //  Se è così spengo i termosifoni (se sono accesi) per sfruttare il calore esterno risparmiando energia        
+              if(RadiatorK.state == ON){
+                RadiatorK.sendCommand(OFF)
+              }
+              // Per sfruttare il calore esterno mi occorre aprire la finestra, quindi la apro se non lo era già
+              if(ShutterK.state == OFF){
+                 ShutterK.sendCommand(ON)
+              }
+            // Se la Temperatura esterna non era maggiore o uguale di quella chiesta tramite il termostato, faccio un controllo ulteriore e mi 
+            // chiedo se la temperatura esterna è perlomeno maggiore della temperatura che ho in stanza
+            } else {
+                if(TemperatureG.state > TemperatureK.state){
+                    // Se è vero spengo i termosifoni per risparmiare energia e sfrutto il calore esterno aprendo la finestra se era chiusa             
+                    if(RadiatorK.state == ON){
+                      RadiatorK.sendCommand(OFF)
+                    }
+
+                    if(ShutterK.state == OFF){
+                         ShutterK.sendCommand(ON)
+                    }
+                  // Altrimenti, se fuori fa più freddo o al più ho la stassa temperatura che ho in stanza che è sempre inferiore a quella chiesta dall utente,  
+                  // vuol dire che mi conviene chiudere le finestre (se non sono già chiuse) e accendere i termosifoni (se erano spenti)     
+                 } else {
+                      if(ShutterK.state == ON){
+                         ShutterK.sendCommand(OFF)
+                      }
+                      if(RadiatorK.state == OFF){
+                        RadiatorK.sendCommand(ON)
+                      }
+                 }
+          }
+        // Se la temperatura all'interno della stanza (cucina) è quindi maggiore rispetto a quella chiesta dall utente tramite il termostato della cucina
+        } else {
+              if(TemperatureK.state > ThermostatK.state){
+                // Se i termosifoni sono accesi li spengo perchè fa troppo caldo                
+                if(RadiatorK.state == ON){
+                      RadiatorK.sendCommand(OFF)
+                }
+                // Controllo se la temperatura esterna è maggiore o uguale di quella richiesta dall'utente tramite il termostato
+                if(TemperatureG.state > ThermostatK.state){
+                // Se è così, se la finestra è aperta, la chiudo per non fare entrare più calore di quello che già
+                  if(ShutterK.state == ON){
+                    ShutterK.sendCommand(OFF)
+                  } 
+                // Altrimenti, se fuori fa più freddo o c'è la stessa temperatura di quella richiesta dall'utente tramite il termostato               
+                } else {
+                    // Se la finestra è chiusa la apro per far disperdere un pò di calore
+                    if(ShutterK.state == OFF){
+                    ShutterK.sendCommand(ON)
+                    } 
+                  }      
+              }
+          }
+      }
+end
+
+
+//############################################################################################################
+// Gestione del riscaldamento per il bagno
+//############################################################################################################
+
+
+rule " Management Bathroom Temperature"
+
+// Se un membro del gruppo "bathroom" o la temperatura all'esterno (Temperature Garden) cambia,
+when
+      Member of bathroom changed or
+      Item TemperatureG changed or
+      Item ThermostatBT changed or
+      // oppure se l'utente sta tornando a casa o è in casa, fai questi controlli.
+      Item allertMobile changed or
+      Item PresenceMobileUser changed to ON or
+      Item PresenceatHome changed to ON or
+      Item ManualMode changed
+then   
+// Questa regola entra in funzione quando l'utente non desidera intervenire: è una regola automatica. Nel momento in cui l'utente desidera 
+// intervenire gli è sufficiente mettere lo switch di manual mode su true. In questo modo può gestire i device smart come desidera.
+
+      // L'allert Mobile serve per allertare la casa che l'utente è in casa o che è molto vicino a casa e sta per ritornare,
+      // quindi nel secondo caso, lo usiamo per far ripartire il riscaldamento così da far trovare all'utente la temperatura ideale appena ritorna
+      if (ManualMode.state == OFF && allertMobile.state == ON) {
+        // Se la temperatura che l'utente desidera avere in cucina (che viene indicata tramite il termostato) è uguale a quella percepita realmente
+        // nella stanza dal sensore di temperatura     
+        if(TemperatureBT.state == ThermostatBT.state) {
+          // Controllo se la finestra è aperta per chiuderla in modo tale da non disperdere calore o per non farlo entrare         
+          if (ShutterBT.state == ON) {
+            ShutterBT.sendCommand(OFF)
+          }
+          // Controllo se i temosifoni sono accesi e li spengo perchè non ce ne è più bisogno, risparmiando così energia
+          if (RadiatorBT.state == ON) {
+            RadiatorBT.sendCommand(OFF)
+          }
+        }
+        // Controllo se la temperatura all'interno della stanza (cucina) è minore rispetto a quella chiesta dall utente tramite il termostato della cucina  
+        if(TemperatureBT.state < ThermostatBT.state) {
+            // Controllo se la temperatura esterna (giardino) è maggiore o uguale rispetto a quella chiesta dall utente tramite il termostato della cucina   
+           if(TemperatureG.state >= ThermostatBT.state){
+              //  Se è così spengo i termosifoni (se sono accesi) per sfruttare il calore esterno risparmiando energia        
+              if(RadiatorBT.state == ON){
+                RadiatorBT.sendCommand(OFF)
+              }
+              // Per sfruttare il calore esterno mi occorre aprire la finestra, quindi la apro se non lo era già
+              if(ShutterBT.state == OFF){
+                 ShutterBT.sendCommand(ON)
+              }
+          // Se la Temperatura esterna non era maggiore o uguale di quella chiesta tramite il termostato, faccio un controllo ulteriore e mi 
+          // chiedo se la temperatura esterna è perlomeno maggiore della temperatura che ho in stanza
+          } else {
+                if(TemperatureG.state > TemperatureBT.state){
+                    // Se è vero spengo i termosifoni per risparmiare energia e sfrutto il calore esterno aprendo la finestra se era chiusa             
+                    if(RadiatorBT.state == ON){
+                      RadiatorBT.sendCommand(OFF)
+                    }
+
+                    if(ShutterBT.state == OFF){
+                         ShutterBT.sendCommand(ON)
+                    }
+                 // Altrimenti, se fuori fa più freddo o al più ho la stassa temperatura che ho in stanza che è sempre inferiore a quella chiesta dall utente,  
+                 // vuol dire che mi conviene chiudere le finestre (se non sono già chiuse) e accendere i termosifoni (se erano spenti)     
+                 } else {
+                      if(ShutterBT.state == ON){
+                         ShutterBT.sendCommand(OFF)
+                      }
+                      if(RadiatorBT.state == OFF){
+                        RadiatorBT.sendCommand(ON)
+                      }
+                    }
+            }
+        // Se la temperatura all'interno della stanza (cucina) è quindi maggiore rispetto a quella chiesta dall utente tramite il termostato della cucina
+        } else {
+              if(TemperatureBT.state > ThermostatBT.state){
+                // Se i termosifoni sono accesi li spengo perchè fa troppo caldo                
+                if(RadiatorBT.state == ON){
+                      RadiatorBT.sendCommand(OFF)
+                }
+                // Controllo se la temperatura esterna è maggiore o uguale di quella richiesta dall'utente tramite il termostato
+                if(TemperatureG.state > ThermostatBT.state){
+                  // Se è così, se la finestra è aperta, la chiudo per non fare entrare più calore di quello che già
+                  if(ShutterBT.state == ON){
+                    ShutterBT.sendCommand(OFF)
+                  } 
+                // Altrimenti, se fuori fa più freddo o c'è la stessa temperatura di quella richiesta dall'utente tramite il termostato               
+                } else {
+                    // Se la finestra è chiusa la apro per far disperdere un pò di calore
+                    if(ShutterBT.state == OFF){
+                    ShutterBT.sendCommand(ON)
+                    } 
+                  }      
+              }
+          }
+      }
+end
+
+
+
+
+//############################################################################################################
+// Scrivo sul database la presenza dell'utente all'interno della casa
+//############################################################################################################
+
+
+rule "Presence in the kitchen"
+when
+  Item MotionK changed to ON
+then
+    executeCommandLine(commanPath+"/fullHome.py Kitchen")
+end
+
+
+rule "Presence out the kitchen"
+when
+  Item MotionK changed to OFF
+then
+    executeCommandLine(commanPath+"/homeEmpty.py Kitchen")
+end
+
+
+rule "Presence in the bathroom"
+when
+  Item MotionBT changed to ON
+then
+    executeCommandLine(commanPath+"/fullHome.py Bathroom")
+end
+
+
+rule "Presence out the bathroom"
+when
+  Item MotionBT changed to OFF
+then
+    executeCommandLine(commanPath+"/homeEmpty.py Bathroom")
+end
+
+
+rule "Starting Heating Kitchen"
+when
+  Item RadiatorK changed to ON
+then
+    executeCommandLine(commanPath+"/startingHeating.py Kitchen "+TemperatureG.state+" "+TemperatureK.state+" "+ThermostatK.state)
+end
+
+rule "Ending Heating Kitchen"
+when
+  Item RadiatorK changed to OFF
+then
+    executeCommandLine(commanPath+"/endingHeating.py Kitchen")
+end
+
+//############################################################################################################
+// Recupero le preferenze utente dal database
+//############################################################################################################
+
+rule "Get Preference Min Temperature Kitchen"
+when
+    System started
+then
+    var String minT = executeCommandLine(commanPath+"/getSettings.py Kitchen Temperature min",10000)
+    MinTemperatureK.postUpdate(minT)  
+end
+
+rule "Get Preference Thermostat Kitchen"
+when
+    System started
+then
+    var String indealT = executeCommandLine(commanPath+"/getSettings.py Kitchen Temperature ideal",10000)
+    ThermostatK.postUpdate(indealT)    
+end
+
+
+rule "Get Preference Min Temperature bathroom"
+when
+    System started
+then
+    var String minT = executeCommandLine(commanPath+"/getSettings.py Bathroom Temperature min",10000)
+    MinTemperatureBT.postUpdate(minT)
+end
+
+rule "Get Preference Thermostat bathroom"
+when
+    System started
+then
+    var String indealT = executeCommandLine(commanPath+"/getSettings.py Bathroom Temperature ideal",10000)
+    ThermostatBT.postUpdate(indealT)    
+end
+
+rule "Get Preference Min Light Kitchen"
+when
+    System started
+then
+    var String minT = executeCommandLine(commanPath+"/getSettings.py Kitchen Light min",10000)
+    MinLightK.postUpdate(minT)  
+end
+
+rule "Get Preference Min Light bathroom"
+when
+    System started
+then
+    var String minT = executeCommandLine(commanPath+"/getSettings.py Bathroom Light min",10000)
+    MinLightBT.postUpdate(minT)
+end
+
+//############################################################################################################
+// Memorizzo le preferenze dell'utente per le diverse stanze
+//############################################################################################################
+
+rule "Preference Temperature Kitchen"
+when
+  Item MinTemperatureK changed or
+  Item ThermostatK changed
+then
+    executeCommandLine(commanPath+"/settings.py Kitchen Temperature "+MinTemperatureK.state+" "+ThermostatK.state)
+end
+
+
+rule "Preference Temperature bathroom"
+when
+  Item MinTemperatureBT changed or
+  Item ThermostatBT changed
+then
+    executeCommandLine(commanPath+"/settings.py Bathroom Temperature "+MinTemperatureBT.state+" "+ThermostatBT.state)
+end
+
+rule "Preference Light Kitchen"
+when
+  Item MinLightK changed 
+then
+    executeCommandLine(commanPath+"/settings.py Kitchen Light "+MinLightK.state+" "+MinLightK.state)
+end
+
+
+rule "Preference Light bathroom"
+when
+  Item MinLightBT changed 
+then
+    executeCommandLine(commanPath+"/settings.py Bathroom Light "+MinLightBT.state+" "+MinLightBT.state)
+end
+
+

@@ -1,0 +1,54 @@
+sitemap default label=" SMARTHOME "
+{
+    Frame label="Setting" {
+    
+    	Switch item=ManualMode label="Manual Mode" icon="lock"
+    	Switch item=PresenceatHome label="Presence at Home" icon="parents_1_1"
+
+    }
+
+    Frame label="User Phone" {
+    	
+    	Text item=PresenceMobileUser label="Presence mobile User at Home" icon="error"
+        Text item=DistanceFromHome label="Distance User from Home [%.1f km]" icon="motion"
+        Text item=allertMobile label="user is coming back home" icon="alarm"
+		Text item=TimeOutside label="user is outside of [%.1f min]" icon="time"
+
+    }
+
+    Frame label="Kitchen" {
+    	
+    	Text item=MotionK label="Sensor Motion [%s]" icon="motion"
+        Setpoint item=ThermostatK label="Thermostat [%.1f °C]" icon="temperature" minValue=0 maxValue=100 step=50.0
+        Setpoint item=MinTemperatureK label="Min Temperature [%.1f °C]" icon="temperature"  minValue=0 maxValue=40 step=0.5
+        Text item=TemperatureK label="Temperature Sensor [%.0f °C]" icon="climate"
+		Text item=LightK label="Light Sensor [%.1f Lux]" icon="sun"
+		Switch item=LampK label="Lamp" icon="Lightbulb"
+		Switch item=ShutterK label="Window" icon="window"
+		Switch item=RadiatorK label="Radiator" icon="radiator"
+
+		//Switch item=GridK label="Smart Grid Oven" icon="kitchen"
+
+    }
+
+    Frame label="Bathroom" {
+    	
+    	Text item=MotionBT label="Sensor Motion [%s]" icon="motion"
+        Setpoint item=ThermostatBT label="Thermostat [%.1f °C]" icon="temperature" minValue=0 maxValue=100 step=1.0
+        Text item=TemperatureBT label="Temperature Sensor [%.0f °C]" icon="climate"
+		Text item=LightBT label="Light Sensor [%.1f Lux]" icon="sun"
+		Switch item=LampBT label="Lamp" icon="Lightbulb"
+		Switch item=ShutterBT label="Window" icon="window"
+		Switch item=RadiatorBT label="Radiator" icon="radiator"
+		Switch item=GridBT label="Smart Grid Washingmachine" icon="washingmachine_2-1"
+
+    }
+
+    Frame label="Garden" {
+    	
+    	Text item=MotionG label="Sensor Motion [%s]" icon="motion"
+        Text item=TemperatureG label="Temperature Sensor [%.0f °C]" icon="climate"
+		Text item=LightG label="Light Sensor [%.1f Lux]" icon="sun"
+
+    }
+}

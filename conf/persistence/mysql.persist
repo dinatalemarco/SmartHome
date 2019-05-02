@@ -1,0 +1,12 @@
+// persistence strategies have a name and definition and are referred to in the "Items" section
+Strategies {
+        every1Minute : "* 0/1 * * * ?"
+        everyDay  : "0 0 0 * * ?"
+
+        // if no strategy is specified for an Item entry below, the default list will be used
+       default = everyChange
+}
+Items {
+       ManualMode : strategy = everyUpdate, restoreOnStartup
+}
+

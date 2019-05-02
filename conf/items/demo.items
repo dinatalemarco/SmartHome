@@ -1,0 +1,44 @@
+
+
+Group settings
+Switch ManualMode "Manual Mode" <network> (settings) {channel="mqtt:topic:myUnsecureBroker:settings:ManualMode"}
+Switch PresenceatHome "Presence at Home" <network> (settings) {channel="mqtt:topic:myUnsecureBroker:settings:PresenceatHome"}
+
+Group phone
+Switch PresenceMobileUser "Presence Mobile User" <network> (phone) {channel="mqtt:topic:myUnsecureBroker:phone:PresenceMobileUser"}
+Number DistanceFromHome "Distance from Home" <network> (phone) {channel="mqtt:topic:myUnsecureBroker:phone:DistanceFromHome"}
+
+Switch allertMobile "Allert Mobile" <network> (phone) {channel="mqtt:topic:myUnsecureBroker:phone:allertMobile"}
+Number TimeOutside "Time Outside" <network> (phone) {channel="mqtt:topic:myUnsecureBroker:phone:TimeOutside"}
+
+
+Group kitchen
+Switch MotionK "Motion Sensor Kitchen" <network> (kitchen) { channel="mqtt:topic:myUnsecureBroker:kitchen:motionK" }
+Number ThermostatK "Thermostat Kitchen [%.0f °C]" <network> (kitchen) {channel="mqtt:topic:myUnsecureBroker:kitchen:thermostatK"}
+Number MinTemperatureK "Min Temperature Kitchen [%.0f °C]"  <network> (kitchen) { channel="mqtt:topic:myUnsecureBroker:kitchen:MinTemperatureK" }
+Number TemperatureK "Temperature Sensor Kitchen [%.0f °C]" <network> (kitchen) {channel="mqtt:topic:myUnsecureBroker:kitchen:temperatureK"}
+Number MinLightK "Min Light Kitchen [%.0f %%]"  <network> (kitchen) { channel="mqtt:topic:myUnsecureBroker:kitchen:MinLightK" }
+Number LightK "Light Sensor Kitchen [%d %%]" <network> (kitchen) {channel="mqtt:topic:myUnsecureBroker:kitchen:lightK"}
+Switch LampK "Lamp Kitchen" <network> (kitchen) { channel="mqtt:topic:myUnsecureBroker:kitchen:lampK" }
+Switch ShutterK "Windows Shutter Kitchen" <network> (kitchen) {channel="mqtt:topic:myUnsecureBroker:kitchen:shutterK"}
+Switch RadiatorK "Radiator Kitchen" <network> (kitchen) { channel="mqtt:topic:myUnsecureBroker:kitchen:radiatorK" }
+
+Group bathroom
+Switch MotionBT "Motion Sensor Bathroom" <network> (bathroom) { channel="mqtt:topic:myUnsecureBroker:bathroom:motionBT" }
+Number ThermostatBT "Thermostat Bathroom [%.0f °C]" <network> (bathroom) {channel="mqtt:topic:myUnsecureBroker:bathroom:thermostatBT"}
+Number MinTemperatureBT "Min Temperature Bathroom [%.0f °C]"  <network> (bathroom) { channel="mqtt:topic:myUnsecureBroker:bathroom:MinTemperatureBT" }
+Number TemperatureBT "Temperature Sensor Bathroom [%.0f °C]" <network> (bathroom) {channel="mqtt:topic:myUnsecureBroker:bathroom:temperatureBT"}
+Number MinLightBT "Min Light Bathroom [%.0f %%]"  <network> (bathroom) { channel="mqtt:topic:myUnsecureBroker:bathroom:MinLightBT" }
+Number LightBT "Light Sensor Bathroom [%d %%]" <network> (bathroom) {channel="mqtt:topic:myUnsecureBroker:bathroom:lightBT"}
+Switch LampBT "Lamp Bathroom" <network> (bathroom) { channel="mqtt:topic:myUnsecureBroker:bathroom:lampBT" }
+Switch ShutterBT "Windows Shutter Bathroom" <network> (bathroom) {channel="mqtt:topic:myUnsecureBroker:bathroom:shutterBT"}
+Switch RadiatorBT "Radiator Bathroom" <network> (bathroom) { channel="mqtt:topic:myUnsecureBroker:bathroom:radiatorBT" }
+
+
+
+Group garden
+Switch MotionG "Motion Sensor Garden" <network> (garden) { channel="mqtt:topic:myUnsecureBroker:garden:motionG" }
+Number TemperatureG "Temperature Sensor Garden  [%.0f °]" <network> (garden) {channel="mqtt:topic:myUnsecureBroker:garden:temperatureG"}
+Number LightG "Light Sensor Garden" <network> (garden) {channel="mqtt:topic:myUnsecureBroker:garden:lightG"}
+
+
